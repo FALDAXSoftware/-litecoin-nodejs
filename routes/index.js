@@ -5,9 +5,9 @@ var app = express();
 
 var CoinsRoute = require("../controllers/v1/CoinsController");
 
-app.get("/api/v1/get-susu-coin-address", CoinsRoute.updateWalletAddress);
-app.post("/api/v1/create-susu-coin-address", CoinsRoute.createUserAddress);
-app.post("/api/v1/send-susu-coin-address", CoinsRoute.userSendFund);
+app.get("/api/v1/get-litecoin-coin-address", CoinsRoute.updateWalletAddress);
+app.post("/api/v1/create-litecoin-coin-address", CoinsRoute.createUserAddress);
+app.post("/api/v1/send-litecoin-coin-address", CoinsRoute.userSendFund);
 app.post("/api/v1/get-user-balance", CoinsRoute.getUserBalance);
 app.post("/api/v1/get-user-transaction-list", CoinsRoute.getUserTransactions);
 app.get("/api/v1/list-transactions-list", CoinsRoute.getListTransactions);
