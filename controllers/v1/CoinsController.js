@@ -34,6 +34,7 @@ var CoinsModel = require('../../models/v1/CoinsModel');
 var WalletModel = require('../../models/v1/WalletModel');
 var WalletHistoryModel = require('../../models/v1/WalletHistory');
 var TransactionTableModel = require('../../models/v1/TransactionTableModel');
+var UserNotificationModel = require("../../models/v1/UserNotifcationModel");
 
 /**
  * Users
@@ -57,9 +58,9 @@ class UsersController extends AppController {
                 .query()
                 .first()
                 .where('deleted_at', null)
-                .andWhere('coin_code', process.env.COIN)
+                .andWhere('coin', process.env.COIN)
                 .andWhere('is_active', true)
-                .andWhere('type', 2)
+                .andWhere('type', 1)
                 .orderBy('id', 'DESC')
 
             if (coinData != undefined) {
@@ -271,49 +272,98 @@ class UsersController extends AppController {
                                     "is_admin": is_admin
                                 });
 
-                            var walletBalance = await WalletModel
-                                .query()
-                                .first()
-                                .where("deleted_at", null)
-                                .andWhere("coin_id", coinData.id)
-                                .andWhere("is_admin", true)
-                                .andWhere("user_id", 36)
-                                .orderBy('id', 'DESC')
 
-                            if (walletBalance != undefined) {
-                                var amountToBeAdded = 0.0
-                                amountToBeAdded = parseFloat(faldax_fee)
-                                console.log("amountToBeAdded", amountToBeAdded)
-                                console.log("walletBalance.balance", walletBalance.balance)
-                                var updateWalletBalance = await WalletModel
+                            if (is_admin == false) {
+                                var walletBalance = await WalletModel
                                     .query()
+                                    .first()
                                     .where("deleted_at", null)
                                     .andWhere("coin_id", coinData.id)
                                     .andWhere("is_admin", true)
                                     .andWhere("user_id", 36)
-                                    .patch({
-                                        "balance": parseFloat(walletBalance.balance) + parseFloat(amountToBeAdded),
-                                        "placed_balance": parseFloat(walletBalance.placed_balance) + parseFloat(amountToBeAdded)
-                                    });
+                                    .orderBy('id', 'DESC')
+                                if (walletBalance != undefined) {
+                                    var amountToBeAdded = 0.0
+                                    amountToBeAdded = parseFloat(faldax_fee)
+                                    console.log("amountToBeAdded", amountToBeAdded)
+                                    console.log("walletBalance.balance", walletBalance.balance)
+                                    var updateWalletBalance = await WalletModel
+                                        .query()
+                                        .where("deleted_at", null)
+                                        .andWhere("coin_id", coinData.id)
+                                        .andWhere("is_admin", true)
+                                        .andWhere("user_id", 36)
+                                        .patch({
+                                            "balance": parseFloat(walletBalance.balance) + parseFloat(amountToBeAdded),
+                                            "placed_balance": parseFloat(walletBalance.placed_balance) + parseFloat(amountToBeAdded)
+                                        });
 
-                                var walletHistoryValue = await WalletHistoryModel
-                                    .query()
-                                    .insert({
-                                        "source_address": walletData.receive_address,
-                                        "destination_address": walletBalance.receive_address,
-                                        "amount": parseFloat(amountToBeAdded).toFixed(8),
-                                        "actual_amount": amount,
-                                        "transaction_type": "send",
-                                        "created_at": new Date(),
-                                        "coin_id": coinData.id,
-                                        "transaction_id": getTransactionDetails.txid,
-                                        "faldax_fee": faldax_fee,
-                                        "actual_network_fees": 0.0,
-                                        "estimated_network_fees": 0.0,
-                                        "user_id": 36,
-                                        "is_admin": true,
-                                        "fiat_values": getFiatValues
-                                    })
+                                    var walletHistoryValue = await WalletHistoryModel
+                                        .query()
+                                        .insert({
+                                            "source_address": walletData.receive_address,
+                                            "destination_address": walletBalance.receive_address,
+                                            "amount": parseFloat(amountToBeAdded).toFixed(8),
+                                            "actual_amount": amount,
+                                            "transaction_type": "send",
+                                            "created_at": new Date(),
+                                            "coin_id": coinData.id,
+                                            "transaction_id": getTransactionDetails.txid,
+                                            "faldax_fee": faldax_fee,
+                                            "actual_network_fees": 0.0,
+                                            "estimated_network_fees": 0.0,
+                                            "user_id": 36,
+                                            "is_admin": true,
+                                            "fiat_values": getFiatValues
+                                        })
+                                }
+                            }
+
+                            var userData = await UsersModel
+                                .query()
+                                .first()
+                                .select()
+                                .where("deleted_at", null)
+                                .andWhere("is_active", true)
+                                .andWhere("id", user_id);
+
+                            var userNotification = await UserNotificationModel
+                                .query()
+                                .first()
+                                .select()
+                                .where("deleted_at", null)
+                                .andWhere("user_id", user_id)
+                                .andWhere("slug", "withdraw");
+
+                            var coin_data = await CoinModel
+                                .query()
+                                .first()
+                                .select()
+                                .where("id", coinData.id);
+
+                            if (coin_data != undefined) {
+                                userData.coinName = coin_data.coin;
+                            } else {
+                                userData.coinName = "-";
+                            }
+
+                            // userData.coinName = coin.coin_code;
+                            userData.amountReceived = parseFloat(userBalanceUpdateValue).toFixed(8);
+
+                            console.log("userData", userData)
+
+                            if (userNotification != undefined) {
+                                if (userNotification.email == true || userNotification.email == "true") {
+                                    if (userData.email != undefined) {
+                                        console.log(userData);
+                                        await Helper.SendEmail("withdraw", userData)
+                                    }
+                                }
+                                if (userNotification.text == true || userNotification.text == "true") {
+                                    if (userData.phone_number != undefined && userData.phone_number != null && userData.phone_number != '') {
+                                        await Helper.sendSMS("withdraw", userData)
+                                    }
+                                }
                             }
                         }
 
@@ -593,6 +643,44 @@ class UsersController extends AppController {
                                         'balance': updatedBalance,
                                         'placed_balance': updatedPlacedBalance
                                     });
+
+                                var userData = await UsersModel
+                                    .query()
+                                    .first()
+                                    .select()
+                                    .where("deleted_at", null)
+                                    .andWhere("is_active", true)
+                                    .andWhere("id", user_id);
+
+                                var userNotification = await UserNotificationModel
+                                    .query()
+                                    .first()
+                                    .select()
+                                    .where("deleted_at", null)
+                                    .andWhere("user_id", user_id)
+                                    .andWhere("slug", "receive");
+
+                                if (coinData != undefined) {
+                                    userData.coinName = coinData.coin;
+                                } else {
+                                    userData.coinName = "-";
+                                }
+
+                                userData.amountReceived = (valueToBeAdded).toFixed(8);
+
+                                if (userNotification != undefined) {
+                                    if (userNotification.email == true || userNotification.email == "true") {
+                                        if (userData.email != undefined) {
+                                            console.log(userData);
+                                            await Helper.SendEmail("receive", userData)
+                                        }
+                                    }
+                                    if (userNotification.text == true || userNotification.text == "true") {
+                                        if (userData.phone_number != undefined && userData.phone_number != null && userData.phone_number != '') {
+                                            await Helper.sendSMS("receive", userData)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }

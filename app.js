@@ -88,3 +88,83 @@ server.listen(app.get('port'), function () {
 });
 
 var cronjobFile = require("./services/cronJobs");
+
+sendEmail = async (slug, user) => {
+  var EmailTemplate = require("./models/EmailTemplateModel");
+  var helpers = require("./helpers/helpers")
+  let template = await EmailTemplate
+    .query()
+    .first()
+    .select()
+    .where("slug", slug);
+
+  let user_language = (user.default_language ? user.default_language : 'en');
+  console.log("user_language", user_language)
+  let language_content = template.all_content[user_language].content;
+  console.log("language_content", language_content)
+  let language_subject = template.all_content[user_language].subject;
+  var object = {};
+  object.recipientName = user.first_name;
+  console.log("object", object)
+  if (user.reason && user.reason != undefined && user.reason != null) {
+    object.reason = user.reason
+  }
+
+  if (user.limitType && user.limitType != undefined && user.limitType != null)
+    object.limit = user.limitType
+
+  if (user.amountReceived && user.amountReceived != undefined && user.amountReceived != "") {
+    object.amountReceived = user.amountReceived
+  }
+
+  if (user.firstCoin && user.firstCoin != undefined && user.firstCoin != "") {
+    object.firstCoin = user.firstCoin
+  }
+
+  if (user.secondCoin && user.secondCoin != undefined && user.secondCoin != "") {
+    object.secondCoin = user.secondCoin
+  }
+
+  if (user.firstAmount && user.firstAmount != undefined && user.firstAmount != "") {
+    object.firstAmount = user.firstAmount
+  }
+
+  if (user.secondAmount && user.secondAmount != undefined && user.secondAmount != "") {
+    object.secondAmount = user.secondAmount
+  }
+
+  if (user.coinName && user.coinName != undefined && user.coinName != null) {
+    object.coin = user.coinName
+  }
+  language_content = await helpers.formatEmail(language_content, object);
+
+  console.log(language_content)
+
+  try {
+    console.log("user.email", user.email)
+    await app.mailer
+      .send('emails/general_mail.ejs', {
+        to: user.email,
+        subject: language_subject,
+        content: (language_content),
+        PROJECT_NAME: process.env.PROJECT_NAME,
+        SITE_URL: process.env.SITE_URL,
+        homelink: process.env.SITE_URL
+      }, function (err, body) {
+        console.log("err", err);
+        console.log("body", body)
+        if (err) {
+          return 0;
+        } else {
+          return 1;
+        }
+      });
+  } catch (err) {
+    console.log("EMail err:", (err));
+    return 0;
+  }
+}
+
+module.exports = {
+  sendEmail: sendEmail
+}
