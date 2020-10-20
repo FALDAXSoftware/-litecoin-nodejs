@@ -130,7 +130,7 @@ class UsersController extends AppController {
                 .where('deleted_at', null)
                 .andWhere('coin_code', process.env.COIN)
                 .andWhere('is_active', true)
-                .andWhere('type', 2)
+                // .andWhere('type', 2)
                 .orderBy('id', 'DESC')
 
             var getWarmWalletAddress = await addressHelper.addressData();
@@ -173,8 +173,8 @@ class UsersController extends AppController {
                 .first()
                 // .where('deleted_at', null)
                 .andWhere('coin_code', process.env.COIN)
-                // .andWhere('is_active', true)
-                .andWhere('type', 2)
+                .andWhere('is_active', true)
+                // .andWhere('type', 2)
                 .orderBy('id', 'DESC')
 
             console.log(coinData);
@@ -209,6 +209,15 @@ class UsersController extends AppController {
                         console.log("sendObject", sendObject)
 
                         var userReceiveAddress = await sendHelper.sendData(sendObject);
+                        console.log("userReceiveAddress", userReceiveAddress)
+                        if (userReceiveAddress.flag == 1) {
+                            return res
+                                .status(500)
+                                .json({
+                                    "status": 500,
+                                    "message": userReceiveAddress.message
+                                })
+                        }
                         var getTransactionDetails = await transactionDetailHelper.getTransaction(userReceiveAddress);
                         console.log("getTransactionDetails", getTransactionDetails)
                         if (getTransactionDetails != undefined) {
@@ -749,7 +758,7 @@ class UsersController extends AppController {
     async getEstimatedFees(req, res) {
         try {
             let req_body = req.body;
-            let totalKB = ((parseInt(req_body.from_address_count)*180)+(parseInt(req_body.to_address_count)*34)+10-parseInt(req_body.from_address_count))/1024;
+            let totalKB = ((parseInt(req_body.from_address_count) * 180) + (parseInt(req_body.to_address_count) * 34) + 10 - parseInt(req_body.from_address_count)) / 1024;
             var getFee = await getEstimatedFeeHelper.getFee();
 
             return res
@@ -757,7 +766,7 @@ class UsersController extends AppController {
                 .json({
                     "status": 200,
                     "message": "Litecoin Fees",
-                    "data": {"totalKB":totalKB, "fee": totalKB*getFee.feerate}
+                    "data": { "totalKB": totalKB, "fee": totalKB * getFee.feerate }
                 })
         } catch (error) {
             console.log(error);

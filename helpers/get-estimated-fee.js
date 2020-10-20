@@ -8,10 +8,10 @@ var getFee = async () => {
         'method': 'POST',
         'url': process.env.SUSU_URL,
         'headers': {
-            'Authorization': 'Basic ' + encodeCredentials.encodeData(),
+            'Authorization': 'Basic ' + encodeKey,
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ "jsonrpc": "1.0", "id": "1", "method": "estimatesmartfee", "params":[2] })
+        body: JSON.stringify({ "jsonrpc": "1.0", "id": "1", "method": "estimatesmartfee", "params": [2] })
 
     };
     var dataValue = await new Promise(async (resolve, reject) => {
