@@ -5,7 +5,7 @@
 replicaCount: 1
 
 image:
-  repository: 100.69.158.196/bitcoin
+  repository: 100.69.158.196/litecoin
   tag: latest
   pullPolicy: Always
 
