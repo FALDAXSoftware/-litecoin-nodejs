@@ -35,7 +35,7 @@ ingress:
     nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
   path: /
   hosts:
-    - pre-prod-litecoin.faldax.com
+    - litecoin-api.faldax.com
   tls: []
 
 resources:
