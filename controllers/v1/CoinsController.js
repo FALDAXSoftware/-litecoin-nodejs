@@ -61,7 +61,7 @@ class UsersController extends AppController {
                 .query()
                 .first()
                 .where('deleted_at', null)
-                .andWhere('coin', process.env.COIN)
+                .andWhere('coin_code', process.env.COIN)
                 .andWhere('is_active', true)
                 .andWhere('type', 1)
                 .orderBy('id', 'DESC')
